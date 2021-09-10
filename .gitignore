@@ -1,2 +1,5 @@
 data/financial_statements/
+data/daily_trade/
+data/corporate_actions/
 vendor/
+.env

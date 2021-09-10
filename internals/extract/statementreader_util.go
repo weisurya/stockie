@@ -25,6 +25,10 @@ func NewStatementReader(filePath string) (r statementReader, err error) {
 	return
 }
 
+func (r statementReader) GetAllTabs() []string {
+	return r.file.GetSheetList()
+}
+
 func (r statementReader) getEntityName() string {
 	ticker, _ := r.file.GetCellValue("1000000", "B5")
 
