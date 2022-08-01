@@ -6,9 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
+	"weisurya/stockie/app/cmd/helper"
 
 	"github.com/Jeffail/tunny"
 	"github.com/sirupsen/logrus"
@@ -65,12 +67,20 @@ func createFinancialStatementURL(ticker string, year, quarter int) string {
 		return res
 	}()
 
-	return "https://www.idx.co.id/Portals/0/StaticData/ListedCompanies/Corporate_Actions/New_Info_JSX/Jenis_Informasi/01_Laporan_Keuangan/02_Soft_Copy_Laporan_Keuangan//Laporan%20Keuangan%20Tahun%20" + fmt.Sprintf("%v/%v/%v/FinancialStatement-%v-%v-%v.xlsx", year, tw, ticker, year, q, ticker)
+	baseUrl, _ := url.Parse("https://www.idx.co.id/Portals/0/StaticData/ListedCompanies/Corporate_Actions/New_Info_JSX/Jenis_Informasi/01_Laporan_Keuangan/02_Soft_Copy_Laporan_Keuangan//Laporan Keuangan Tahun ")
+	baseUrl.Path += fmt.Sprintf("%v/%v/%v/FinancialStatement-%v-%v-%v.xlsx", year, tw, ticker, year, q, ticker)
+
+	baseUrl.RawQuery = baseUrl.Query().Encode()
+
+	logrus.Info(baseUrl.String())
+
+	return baseUrl.String()
 
 }
 
 func downloadFinancialStatement(url, ticker string, year, quarter int) error {
 	filePath := fmt.Sprintf("./data/financial_statements/%v/%v/%v/", ticker, strconv.Itoa(year), strconv.Itoa(quarter))
+	fullPath := filePath + financialStatementCSVFilename
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
@@ -78,11 +88,18 @@ func downloadFinancialStatement(url, ticker string, year, quarter int) error {
 		}
 	}
 
-	fullPath := filePath + financialStatementCSVFilename
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		logrus.Infof("Downloading %v %v-%v financial statement...", ticker, year, quarter)
 
-		resp, err := http.Get(url)
+		client := &http.Client{}
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36")
+
+		resp, err := client.Do(req)
 		if err != nil {
 			return err
 		}
@@ -104,9 +121,11 @@ func downloadFinancialStatement(url, ticker string, year, quarter int) error {
 			}
 
 			logrus.Infof("File stored in ./data/financial_statements/%v/%v/%v", ticker, year, quarter)
+		} else if resp.StatusCode == http.StatusForbidden {
+			helper.Log.Error("%v %v-%v financial statement was restricted to be downloaded", ticker, year, quarter)
+			helper.Log.Error(url)
 		} else {
-			logrus.Infof("%v %v-%v financial statement has not existed yet", ticker, year, quarter)
-
+			// logrus.Infof("%v %v-%v financial statement has not existed yet", ticker, year, quarter)
 			if err = os.Remove(filePath); err != nil {
 				return err
 			}
@@ -159,7 +178,6 @@ func (s *Service) downloadAllStatements(companies []Company, startYear, endYear,
 				}
 
 				if err != nil {
-					fmt.Println(err)
 					panic(err)
 				}
 			}

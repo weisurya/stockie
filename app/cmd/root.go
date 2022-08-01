@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"weisurya/stockie"
+	"weisurya/stockie/app/cmd/helper"
 	"weisurya/stockie/internals/crawler"
 
 	"github.com/sirupsen/logrus"
@@ -22,6 +23,8 @@ var (
 
 func Execute() {
 	cobra.OnInitialize(initServices)
+
+	helper.Log = helper.NewLog()
 
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)

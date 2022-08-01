@@ -50,7 +50,7 @@ func (s *Service) StartCrawlDailyTrade(
 		return err
 	}
 
-	for d := sd; !d.After(ed); d = d.AddDate(0, 1, 0) {
+	for d := sd; !d.After(ed); d = d.AddDate(0, 0, 1) {
 		if s.isTodayDataDownloaded(d) {
 			logrus.Infof("Today daily trade %v has been downloaded. Please check in %v", d.Format("2006-01-02"), baseFolderPathDailyTrade)
 
