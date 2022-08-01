@@ -1,6 +1,11 @@
 package cmd
 
 import (
+	"context"
+	"weisurya/stockie"
+	"weisurya/stockie/app/cmd/helper"
+	"weisurya/stockie/internals/crawler"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -12,8 +17,22 @@ var (
 	}
 )
 
+var (
+	crawlerService stockie.ICrawlerService
+)
+
 func Execute() {
+	cobra.OnInitialize(initServices)
+
+	helper.Log = helper.NewLog()
+
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func initServices() {
+	ctx := context.Background()
+
+	crawlerService = crawler.New(ctx)
 }
